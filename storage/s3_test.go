@@ -78,13 +78,13 @@ func TestS3Put(t *testing.T) {
 	client := &testS3Client{}
 	s := storage.NewS3(client, "mybucket", "us-east-1", 1)
 
-	url, err := s.Put(ctx, "/foo/things", "text/plain", []byte(`HELLOWORLD`))
+	url, err := s.Put(ctx, "/foo/things", "text/plain", []byte(`HELLOWORLD`), "")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://mybucket.s3.us-east-1.amazonaws.com/foo/things", url)
 
 	client.returnError = errors.New("boom")
 
-	_, err = s.Put(ctx, "/foo/things", "text/plain", []byte(`HELLOWORLD`))
+	_, err = s.Put(ctx, "/foo/things", "text/plain", []byte(`HELLOWORLD`), "")
 	assert.EqualError(t, err, "error putting S3 object: boom")
 }
 

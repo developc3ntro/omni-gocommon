@@ -96,7 +96,7 @@ func (s *s3Storage) Get(ctx context.Context, path string) (string, []byte, error
 }
 
 // Put writes the passed in file to the bucket with the passed in content type
-func (s *s3Storage) Put(ctx context.Context, path string, contentType string, contents []byte) (string, error) {
+func (s *s3Storage) Put(ctx context.Context, path string, contentType string, contents []byte, bucketURL string) (string, error) {
 	_, err := s.client.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Body:        bytes.NewReader(contents),
@@ -108,7 +108,7 @@ func (s *s3Storage) Put(ctx context.Context, path string, contentType string, co
 		return "", errors.Wrapf(err, "error putting S3 object")
 	}
 
-	return s.url(path), nil
+	return s.url(path, bucketURL), nil
 }
 
 func (s *s3Storage) batchWorker(ctx context.Context, uploads chan *Upload, errors chan error, stop chan bool, wg *sync.WaitGroup) {
@@ -138,7 +138,7 @@ func (s *s3Storage) batchWorker(ctx context.Context, uploads chan *Upload, error
 			}
 
 			if err == nil {
-				u.URL = s.url(u.Path)
+				u.URL = s.url(u.Path, "")
 			} else {
 				u.Error = err
 			}
@@ -189,14 +189,10 @@ func (s *s3Storage) BatchPut(ctx context.Context, us []*Upload) error {
 	return err
 }
 
-func (s *s3Storage) url(path string) string {
-	var s3BucketURL = "https://s3-test.c3ntro.com:9000/%s%s"
+func (s *s3Storage) url(path string, bucketURL string) string {
+	var s3BucketURL = "%s/%s%s"
 
-	return fmt.Sprintf(s3BucketURL, s.bucket, path)
+	return fmt.Sprintf(s3BucketURL, bucketURL, s.bucket, path)
 }
 
-// https://s3-test.c3ntro.com:9000/omnicentro/media/1/0ba6/9317/0ba69317-a275-4084-aa3e-5adddb179b64.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=CKVDMACOB9LYNS5AE0CK%2F20240528%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20240528T181242Z&X-Amz-Expires=604800&X-Amz-Security-Token=eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDS1ZETUFDT0I5TFlOUzVBRTBDSyIsImV4cCI6MTcxNjk2MzA2MSwicGFyZW50IjoidGFuaWEudG9ycmVzIn0.nCZqYk--xQ7IdLi87a8HbBhzt3s04Ntj2x55G2JglH1b2899Y0a_70tmJM9mofJOcYzOp7uplcqAx3-5P2BCAQ&X-Amz-SignedHeaders=host&versionId=null&X-Amz-Signature=af535896e4f36185637129d32b0346bf59821b6c7563aa641460b6ba87e1280d
-
-// "https://%s.s3.%s.amazonaws.com%s"
-
-// https://omnicentro.s3.us-west-2.amazonaws.com/media/1/d263/b888/d263b888-e4c1-4144-b276-c173c8a21260.jpg
+// url example: "https://%s.s3.%s.amazonaws.com%s"
